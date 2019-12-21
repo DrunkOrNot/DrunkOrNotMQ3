@@ -7,6 +7,7 @@ from datetime import datetime
 # from firebase import firebase
 
 MEASURING_TIME          = 5000           # in miliseconds
+NUM_SAMPLES             = 1000
 PERC_MIN_VAL            = 0.05
 PERC_MAX_VAL            = 10.0
 SEND_TO_FIREBASE        = True
@@ -14,20 +15,25 @@ SEND_TO_FIREBASE        = True
 def measure():
     mq = MQ();
     samples = []
+    frame_duration = MEASURING_TIME / NUM_SAMPLES
     time_start = int(datetime.timestamp(datetime.now()) * 1000)
+    frame_start = time_start
 
     while int(datetime.timestamp(datetime.now()) * 1000) - time_start < MEASURING_TIME:
-        try:
-            perc = mq.MQPercentage()
-        except Exception as e:
-            print(e)
-        else:
-            if PERC_MIN_VAL < perc["GAS_ALC"] < PERC_MAX_VAL:
-                print("\r")
-                print("\033[K")
-                print("Alcohol Detection Level: %g mg/L" % (perc["GAS_ALC"]))
-                print("Promiles: %g" % (2.1 * perc["GAS_ALC"]))
-                samples.append(perc["GAS_ALC"])
+        if (datetime.timestamp(datetime.now()) * 1000) - frame_start >= frame_duration:
+            frame_start = int(datetime.timestamp(datetime.now()) * 1000)
+            try:
+                perc = mq.MQPercentage()
+            except Exception as e:
+                print(e)
+            else:
+                if PERC_MIN_VAL < perc["GAS_ALC"] < PERC_MAX_VAL:
+                    print("\r")
+                    print("\033[K")
+                    print("Alcohol Detection Level: %g mg/L" % (perc["GAS_ALC"]))
+                    print("Promiles: %g" % (2.1 * perc["GAS_ALC"]))
+                    samples.append(perc["GAS_ALC"])
+    print("Samples taken: ", len(samples))
     return samples
 
 def main():
